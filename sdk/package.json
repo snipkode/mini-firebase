@@ -1,0 +1,9 @@
+{
+  "name": "mini-firebase-sdk",
+  "version": "1.0.0",
+  "description": "Mini Firebase Client SDK",
+  "main": "index.js",
+  "browser": "index.js",
+  "keywords": ["firebase", "database", "realtime", "baas"],
+  "license": "MIT"
+}

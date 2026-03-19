@@ -1,0 +1,9 @@
+node_modules/
+*.log
+.DS_Store
+*.so
+db-cli
+.env
+*.swp
+*.swo
+*~
