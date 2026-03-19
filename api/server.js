@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const auth = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +11,25 @@ const WS_PORT = process.env.WS_PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Auth middleware
+const authMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const user = auth.validateToken(token);
+    
+    if (!user) {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    req.user = user;
+    next();
+};
 
 // Database (file-based fallback - works without native dependencies)
 const dataDir = '../data';
@@ -65,6 +85,47 @@ const db = {
         } catch (e) {
             return '[]';
         }
+    },
+    update: (collection, id, updateData) => {
+        const filePath = getCollectionPath(collection);
+        let docs = [];
+        
+        try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            docs = JSON.parse(content);
+        } catch (e) {
+            return null;
+        }
+        
+        const docIndex = docs.findIndex(doc => doc.id === id);
+        if (docIndex === -1) {
+            return null;
+        }
+        
+        docs[docIndex] = { ...docs[docIndex], ...updateData, id };
+        fs.writeFileSync(filePath, JSON.stringify(docs));
+        return docs[docIndex];
+    },
+    delete: (collection, id) => {
+        const filePath = getCollectionPath(collection);
+        let docs = [];
+        
+        try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            docs = JSON.parse(content);
+        } catch (e) {
+            return false;
+        }
+        
+        const initialLength = docs.length;
+        docs = docs.filter(doc => doc.id !== id);
+        
+        if (docs.length === initialLength) {
+            return false;
+        }
+        
+        fs.writeFileSync(filePath, JSON.stringify(docs));
+        return true;
     }
 };
 
@@ -159,17 +220,141 @@ app.get('/db/:collection/query', (req, res) => {
     try {
         const { collection } = req.params;
         const { field, value } = req.query;
-        
+
         if (!field || !value) {
             return res.status(400).json({ error: 'field and value query parameters required' });
         }
-        
+
         const data = db.query(collection, field, value);
         res.json(JSON.parse(data));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
+app.put('/db/:collection/:id', (req, res) => {
+    try {
+        const { collection, id } = req.params;
+        const updateData = req.body;
+
+        const updated = db.update(collection, id, updateData);
+        
+        if (!updated) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        // Broadcast realtime update
+        const allData = db.get(collection);
+        broadcast(collection, allData);
+
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/db/:collection/:id', (req, res) => {
+    try {
+        const { collection, id } = req.params;
+        const updateData = req.body;
+
+        const updated = db.update(collection, id, updateData);
+        
+        if (!updated) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        // Broadcast realtime update
+        const allData = db.get(collection);
+        broadcast(collection, allData);
+
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/db/:collection/:id', (req, res) => {
+    try {
+        const { collection, id } = req.params;
+
+        const deleted = db.delete(collection, id);
+        
+        if (!deleted) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        // Broadcast realtime update
+        const allData = db.get(collection);
+        broadcast(collection, allData);
+
+        res.json({ success: true, id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Auth Routes
+app.post('/auth/register', (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ error: 'email and password required' });
+        }
+        
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+        
+        const result = auth.register(email, password);
+        
+        if (result.error) {
+            return res.status(400).json(result);
+        }
+        
+        res.status(201).json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/auth/login', (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ error: 'email and password required' });
+        }
+        
+        const result = auth.login(email, password);
+        
+        if (result.error) {
+            return res.status(401).json(result);
+        }
+        
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/auth/logout', authMiddleware, (req, res) => {
+    try {
+        const token = req.headers.authorization.split(' ')[1];
+        const result = auth.logout(token);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/auth/me', authMiddleware, (req, res) => {
+    res.json({ user: req.user });
+});
+
+// Protected DB routes (optional - require auth)
+app.use('/db', authMiddleware);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

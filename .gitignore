@@ -7,3 +7,5 @@ db-cli
 *.swp
 *.swo
 *~
+data/*.json
+data/.*

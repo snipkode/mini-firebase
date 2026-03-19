@@ -11,6 +11,8 @@
 - ✅ Realtime update via WebSocket
 - ✅ Client SDK (JavaScript)
 - ✅ C++ database engine
+- ✅ Authentication (Register/Login)
+- ✅ Update & Delete documents
 
 ---
 
@@ -69,6 +71,12 @@ Server akan berjalan di:
 | POST | `/db/:collection` | Insert document |
 | GET | `/db/:collection` | Get all documents |
 | GET | `/db/:collection/query?field=X&value=Y` | Query documents |
+| PUT | `/db/:collection/:id` | Update document |
+| DELETE | `/db/:collection/:id` | Delete document |
+| POST | `/auth/register` | Register user |
+| POST | `/auth/login` | Login user |
+| POST | `/auth/logout` | Logout user |
+| GET | `/auth/me` | Get current user |
 
 ### Contoh Request
 
@@ -89,6 +97,34 @@ curl http://localhost:3000/db/users
 curl "http://localhost:3000/db/users/query?field=status&value=aktif"
 ```
 
+**Update Data:**
+```bash
+curl -X PUT http://localhost:3000/db/users/1234567890_1234 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"name":"Alam Updated","status":"inactive"}'
+```
+
+**Delete Data:**
+```bash
+curl -X DELETE http://localhost:3000/db/users/1234567890_1234 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+**Register User:**
+```bash
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"secret123"}'
+```
+
+**Login User:**
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"secret123"}'
+```
+
 ---
 
 ## 💻 Client SDK
@@ -101,17 +137,29 @@ curl "http://localhost:3000/db/users/query?field=status&value=aktif"
   const db = new MiniFirebase();
   db.connect();
 
+  // Register/Login
+  await db.register('user@example.com', 'password123');
+  // or
+  await db.login('user@example.com', 'password123');
+
   const users = db.collection('users');
 
   // Add data
-  users.add({ name: 'Alam', status: 'aktif' })
-    .then(doc => console.log('Added:', doc));
+  const doc = await users.add({ name: 'Alam', status: 'aktif' });
+  console.log('Added:', doc);
 
   // Get data
-  users.get().then(docs => console.log('Users:', docs));
+  const all = await users.get();
+  console.log('Users:', all);
+
+  // Update data
+  await users.update(doc.id, { status: 'inactive' });
+
+  // Delete data
+  await users.delete(doc.id);
 
   // Realtime updates
-  users.onSnapshot(data => {
+  const unsubscribe = await users.onSnapshot(data => {
     console.log('Realtime update:', data);
   });
 </script>
@@ -123,7 +171,12 @@ curl "http://localhost:3000/db/users/query?field=status&value=aktif"
 const MiniFirebase = require('./sdk');
 
 const db = new MiniFirebase();
-db.connect();
+await db.connect();
+
+// Auth
+await db.register('user@example.com', 'password123');
+// or
+await db.login('user@example.com', 'password123');
 
 const users = db.collection('users');
 
@@ -136,10 +189,19 @@ const all = await users.get();
 // Query
 const active = await users.get({ field: 'status', value: 'aktif' });
 
+// Update
+await users.update(doc.id, { status: 'inactive' });
+
+// Delete
+await users.delete(doc.id);
+
 // Realtime
 const unsubscribe = await users.onSnapshot(data => {
   console.log('Update:', data);
 });
+
+// Logout
+await db.logout();
 ```
 
 ---
@@ -196,16 +258,16 @@ Document format:
 
 ## 📝 Roadmap
 
-### Phase 1 (✅ Current)
+### Phase 1 (✅ Completed)
 - [x] Database C++
 - [x] REST API
 - [x] Realtime WebSocket
 - [x] Client SDK
 
-### Phase 2
-- [ ] Update/Delete API
-- [ ] Authentication
-- [ ] Data validation
+### Phase 2 (✅ Completed)
+- [x] Update/Delete API
+- [x] Authentication
+- [x] SDK updates
 
 ### Phase 3
 - [ ] Multi-tenant support

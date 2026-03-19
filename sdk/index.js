@@ -5,9 +5,10 @@ class MiniFirebase {
         this.ws = null;
         this.listeners = new Map();
         this.reconnectDelay = 3000;
+        this.token = null;
     }
 
-    connect() {
+    async connect() {
         return new Promise((resolve, reject) => {
             try {
                 this.ws = new WebSocket(this.wsUrl);
@@ -43,13 +44,74 @@ class MiniFirebase {
     }
 
     collection(name) {
-        return new Collection(this, name);
+        const col = new Collection(this, name);
+        // Inject token getter for auth
+        col.getToken = () => this.token;
+        return col;
     }
 
     async disconnect() {
         if (this.ws) {
             this.ws.close();
         }
+    }
+
+    // Auth methods
+    async register(email, password) {
+        const response = await fetch(`${this.httpUrl}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const result = await response.json();
+        if (result.token) {
+            this.token = result.token;
+        }
+        return result;
+    }
+
+    async login(email, password) {
+        const response = await fetch(`${this.httpUrl}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const result = await response.json();
+        if (result.token) {
+            this.token = result.token;
+        }
+        return result;
+    }
+
+    async logout() {
+        if (!this.token) return { error: 'Not logged in' };
+        
+        const response = await fetch(`${this.httpUrl}/auth/logout`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+            }
+        });
+        
+        this.token = null;
+        return await response.json();
+    }
+
+    async getCurrentUser() {
+        if (!this.token) return { error: 'Not logged in' };
+        
+        const response = await fetch(`${this.httpUrl}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${this.token}` }
+        });
+        
+        return await response.json();
+    }
+
+    setToken(token) {
+        this.token = token;
     }
 }
 
@@ -59,33 +121,71 @@ class Collection {
         this.name = name;
     }
 
+    _getHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = this.db.getToken ? this.db.getToken() : null;
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        return headers;
+    }
+
     async add(data) {
         const response = await fetch(`${this.db.httpUrl}/db/${this.name}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this._getHeaders(),
             body: JSON.stringify(data)
         });
-        
+
         if (!response.ok) {
             throw new Error(await response.text());
         }
-        
+
         return await response.json();
     }
 
     async get(query) {
         let url = `${this.db.httpUrl}/db/${this.name}`;
-        
+
         if (query && query.field && query.value) {
             url += `/query?field=${query.field}&value=${query.value}`;
         }
-        
-        const response = await fetch(url);
-        
+
+        const response = await fetch(url, {
+            headers: this._getHeaders()
+        });
+
         if (!response.ok) {
             throw new Error(await response.text());
         }
-        
+
+        return await response.json();
+    }
+
+    async update(id, data) {
+        const response = await fetch(`${this.db.httpUrl}/db/${this.name}/${id}`, {
+            method: 'PUT',
+            headers: this._getHeaders(),
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        return await response.json();
+    }
+
+    async delete(id) {
+        const response = await fetch(`${this.db.httpUrl}/db/${this.name}/${id}`, {
+            method: 'DELETE',
+            headers: this._getHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
         return await response.json();
     }
 
@@ -94,16 +194,16 @@ class Collection {
             console.warn('WebSocket not connected, realtime updates unavailable');
             return () => {};
         }
-        
+
         const listeners = this.db.listeners.get(this.name) || [];
         listeners.push(callback);
         this.db.listeners.set(this.name, listeners);
-        
+
         this.db.ws.send(JSON.stringify({
             type: 'subscribe',
             collection: this.name
         }));
-        
+
         // Return unsubscribe function
         return () => {
             const currentListeners = this.db.listeners.get(this.name) || [];
@@ -112,7 +212,7 @@ class Collection {
                 currentListeners.splice(index, 1);
                 this.db.listeners.set(this.name, currentListeners);
             }
-            
+
             if (this.db.ws && this.db.ws.readyState === WebSocket.OPEN) {
                 this.db.ws.send(JSON.stringify({
                     type: 'unsubscribe',
