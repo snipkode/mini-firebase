@@ -35,10 +35,10 @@ const authLimiter = rateLimit({
 // Project creation limiter
 const projectLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // 10 projects per hour
+    max: 100, // 100 projects per hour (increased for development)
     message: {
         error: 'Too many projects created',
-        message: 'Maximum 10 projects per hour allowed'
+        message: 'Maximum 100 projects per hour allowed'
     }
 });
 
