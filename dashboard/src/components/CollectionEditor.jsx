@@ -422,23 +422,94 @@ export default function CollectionEditor({ value, onChange, readOnly = false }) 
       {/* Fields */}
       <div className="space-y-3">
         {fieldCount === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="text-5xl mb-4">📝</div>
-            <h3 className="text-lg font-semibold text-gray-300 mb-2">No fields yet</h3>
-            <p className="text-gray-400 text-sm mb-4 max-w-md mx-auto">
-              Start building your document by adding fields. Each field can contain text, numbers, booleans, or even nested objects and arrays.
-            </p>
-            {!isArray && (
+          <div className="relative">
+            {/* Decorative Background */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-64 h-64 bg-gradient-to-br from-accent/5 to-purple-500/5 rounded-full blur-3xl" />
+            </div>
+            
+            <div className="relative text-center py-16 px-4">
+              {/* Animated Icon */}
+              <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 bg-accent/20 rounded-3xl blur-xl animate-pulse" />
+                <div className="relative w-24 h-24 bg-gradient-to-br from-accent to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                {/* Floating badge */}
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-xl font-bold text-gray-100 mb-2">
+                Start Building Your Document
+              </h3>
+              
+              {/* Description */}
+              <p className="text-gray-400 text-sm mb-8 max-w-md mx-auto leading-relaxed">
+                Add your first field to get started. You can create nested structures with objects and arrays.
+              </p>
+
+              {/* Quick Add Buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+                <button
+                  onClick={() => addField('', 'text', 'string')}
+                  className="group flex items-center gap-2 px-4 py-3 rounded-xl bg-bg-card border-2 border-border hover:border-green-500/50 transition-all hover:shadow-lg hover:shadow-green-500/10"
+                >
+                  <span className="text-lg">📝</span>
+                  <span className="text-sm font-medium text-gray-300 group-hover:text-green-400 transition-colors">Text</span>
+                </button>
+                <button
+                  onClick={() => addField('', 'number', 'number')}
+                  className="group flex items-center gap-2 px-4 py-3 rounded-xl bg-bg-card border-2 border-border hover:border-blue-500/50 transition-all hover:shadow-lg hover:shadow-blue-500/10"
+                >
+                  <span className="text-lg">🔢</span>
+                  <span className="text-sm font-medium text-gray-300 group-hover:text-blue-400 transition-colors">Number</span>
+                </button>
+                <button
+                  onClick={() => addField('', 'flag', 'boolean')}
+                  className="group flex items-center gap-2 px-4 py-3 rounded-xl bg-bg-card border-2 border-border hover:border-orange-500/50 transition-all hover:shadow-lg hover:shadow-orange-500/10"
+                >
+                  <span className="text-lg">⚡</span>
+                  <span className="text-sm font-medium text-gray-300 group-hover:text-orange-400 transition-colors">Boolean</span>
+                </button>
+                <button
+                  onClick={() => addField('', 'data', 'object')}
+                  className="group flex items-center gap-2 px-4 py-3 rounded-xl bg-bg-card border-2 border-border hover:border-purple-500/50 transition-all hover:shadow-lg hover:shadow-purple-500/10"
+                >
+                  <span className="text-lg">📦</span>
+                  <span className="text-sm font-medium text-gray-300 group-hover:text-purple-400 transition-colors">Object</span>
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center justify-center gap-4 mb-8">
+                <div className="h-px w-24 bg-gradient-to-r from-transparent to-border" />
+                <span className="text-gray-500 text-xs uppercase tracking-wider">or create custom field</span>
+                <div className="h-px w-24 bg-gradient-to-l from-transparent to-border" />
+              </div>
+
+              {/* Custom Field Button */}
               <button
                 onClick={handleAddRootField}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent hover:bg-blue-600 text-white font-semibold transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50"
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-accent to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold text-base transition-all shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Your First Field
+                Add Custom Field
               </button>
-            )}
+
+              {/* Hint */}
+              <p className="mt-6 text-xs text-gray-500">
+                💡 Press <kbd className="px-2 py-1 bg-bg-card rounded text-gray-400 font-mono">Tab</kbd> to quickly add fields
+              </p>
+            </div>
           </div>
         ) : (
           Object.entries(data).map(([key, val]) => 
