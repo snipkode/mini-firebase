@@ -1,0 +1,83 @@
+.settings-page {
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left h1 {
+  font-size: 20px;
+}
+
+.settings-section {
+  margin: 24px 0;
+}
+
+.settings-section h2 {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.setting-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+.setting-icon {
+  font-size: 28px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setting-info {
+  flex: 1;
+}
+
+.setting-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.setting-value {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.setting-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.btn-full {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.settings-footer {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}

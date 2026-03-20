@@ -1,0 +1,108 @@
+.projects-page {
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left h1 {
+  font-size: 20px;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.project-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.project-card:active {
+  transform: scale(0.98);
+}
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.project-icon {
+  font-size: 36px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.project-card h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.project-desc {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.project-meta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.project-api-key {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.project-api-key code {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.project-footer {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
