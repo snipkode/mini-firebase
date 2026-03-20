@@ -6,32 +6,34 @@ class MiniFirebase {
         this.listeners = new Map();
         this.reconnectDelay = 3000;
         this.token = null;
+        this.apiKey = null;
+        this.projectId = null;
     }
 
     async connect() {
         return new Promise((resolve, reject) => {
             try {
                 this.ws = new WebSocket(this.wsUrl);
-                
+
                 this.ws.onopen = () => {
                     console.log('✓ Connected to Mini Firebase');
                     resolve();
                 };
-                
+
                 this.ws.onmessage = (event) => {
                     const msg = JSON.parse(event.data);
-                    
+
                     if (msg.type === 'update') {
                         const collectionListeners = this.listeners.get(msg.collection) || [];
                         collectionListeners.forEach(callback => callback(msg.data));
                     }
                 };
-                
+
                 this.ws.onclose = () => {
                     console.log('⚠ Disconnected, reconnecting...');
                     setTimeout(() => this.connect(), this.reconnectDelay);
                 };
-                
+
                 this.ws.onerror = (error) => {
                     console.error('WebSocket error:', error);
                     reject(error);
@@ -45,8 +47,9 @@ class MiniFirebase {
 
     collection(name) {
         const col = new Collection(this, name);
-        // Inject token getter for auth
         col.getToken = () => this.token;
+        col.getApiKey = () => this.apiKey;
+        col.getProjectId = () => this.projectId;
         return col;
     }
 
@@ -54,6 +57,31 @@ class MiniFirebase {
         if (this.ws) {
             this.ws.close();
         }
+    }
+
+    // Project methods
+    async createProject(name, description = '') {
+        const response = await fetch(`${this.httpUrl}/projects`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+            },
+            body: JSON.stringify({ name, description })
+        });
+        return await response.json();
+    }
+
+    async getProjects() {
+        const response = await fetch(`${this.httpUrl}/projects`, {
+            headers: { 'Authorization': `Bearer ${this.token}` }
+        });
+        return await response.json();
+    }
+
+    async setProject(projectId, apiKey) {
+        this.projectId = projectId;
+        this.apiKey = apiKey;
     }
 
     // Auth methods
@@ -123,15 +151,27 @@ class Collection {
 
     _getHeaders() {
         const headers = { 'Content-Type': 'application/json' };
+        const apiKey = this.db.getApiKey ? this.db.getApiKey() : null;
         const token = this.db.getToken ? this.db.getToken() : null;
-        if (token) {
+        
+        if (apiKey) {
+            headers['x-api-key'] = apiKey;
+        } else if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
         return headers;
     }
 
+    _getBaseUrl() {
+        const projectId = this.db.getProjectId ? this.db.getProjectId() : null;
+        if (projectId) {
+            return `${this.db.httpUrl}/api/${projectId}/db/${this.name}`;
+        }
+        return `${this.db.httpUrl}/db/${this.name}`;
+    }
+
     async add(data) {
-        const response = await fetch(`${this.db.httpUrl}/db/${this.name}`, {
+        const response = await fetch(this._getBaseUrl(), {
             method: 'POST',
             headers: this._getHeaders(),
             body: JSON.stringify(data)
@@ -145,7 +185,7 @@ class Collection {
     }
 
     async get(query) {
-        let url = `${this.db.httpUrl}/db/${this.name}`;
+        let url = this._getBaseUrl();
 
         if (query && query.field && query.value) {
             url += `/query?field=${query.field}&value=${query.value}`;
@@ -153,6 +193,22 @@ class Collection {
 
         const response = await fetch(url, {
             headers: this._getHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        return await response.json();
+    }
+
+    async queryAdvanced(options) {
+        const url = this._getBaseUrl() + '/query';
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: this._getHeaders(),
+            body: JSON.stringify(options)
         });
 
         if (!response.ok) {

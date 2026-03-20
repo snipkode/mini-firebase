@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const auth = require('./auth');
+const tenant = require('./tenant');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,7 @@ const WS_PORT = process.env.WS_PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 // Auth middleware
 const authMiddleware = (req, res, next) => {
@@ -31,6 +33,24 @@ const authMiddleware = (req, res, next) => {
     next();
 };
 
+// API Key middleware (for multi-tenant)
+const apiKeyMiddleware = (req, res, next) => {
+    const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+    
+    if (!apiKey) {
+        return res.status(401).json({ error: 'API key required' });
+    }
+    
+    const project = tenant.validateApiKey(apiKey);
+    
+    if (!project) {
+        return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    req.project = project;
+    next();
+};
+
 // Database (file-based fallback - works without native dependencies)
 const dataDir = '../data';
 
@@ -38,7 +58,14 @@ if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
-function getCollectionPath(collection) {
+function getCollectionPath(collection, projectId = null) {
+    if (projectId) {
+        const projectDir = path.join(dataDir, 'projects', projectId);
+        if (!fs.existsSync(projectDir)) {
+            fs.mkdirSync(projectDir, { recursive: true });
+        }
+        return path.join(projectDir, collection + '.json');
+    }
     return path.join(dataDir, collection + '.json');
 }
 
@@ -47,27 +74,27 @@ function generateId() {
 }
 
 const db = {
-    insert: (collection, jsonData) => {
+    insert: (collection, jsonData, projectId = null) => {
         const docId = generateId();
-        const filePath = getCollectionPath(collection);
+        const filePath = getCollectionPath(collection, projectId);
         let docs = [];
-        
+
         try {
             const content = fs.readFileSync(filePath, 'utf8');
             docs = JSON.parse(content);
         } catch (e) {
             docs = [];
         }
-        
+
         const newDoc = JSON.parse(jsonData);
         newDoc.id = docId;
         docs.push(newDoc);
-        
+
         fs.writeFileSync(filePath, JSON.stringify(docs));
         return docId;
     },
-    get: (collection) => {
-        const filePath = getCollectionPath(collection);
+    get: (collection, projectId = null) => {
+        const filePath = getCollectionPath(collection, projectId);
         try {
             const content = fs.readFileSync(filePath, 'utf8');
             return JSON.stringify(JSON.parse(content));
@@ -75,8 +102,8 @@ const db = {
             return '[]';
         }
     },
-    query: (collection, field, value) => {
-        const filePath = getCollectionPath(collection);
+    query: (collection, field, value, projectId = null) => {
+        const filePath = getCollectionPath(collection, projectId);
         try {
             const content = fs.readFileSync(filePath, 'utf8');
             const docs = JSON.parse(content);
@@ -86,30 +113,69 @@ const db = {
             return '[]';
         }
     },
-    update: (collection, id, updateData) => {
-        const filePath = getCollectionPath(collection);
+    advancedQuery: (collection, options = {}, projectId = null) => {
+        const filePath = getCollectionPath(collection, projectId);
+        try {
+            let content = fs.readFileSync(filePath, 'utf8');
+            let docs = JSON.parse(content);
+            
+            // Where filters
+            if (options.where) {
+                for (const [field, value] of Object.entries(options.where)) {
+                    docs = docs.filter(doc => doc[field] == value);
+                }
+            }
+            
+            // Sort
+            if (options.sortBy) {
+                const field = options.sortBy;
+                const order = options.order || 'asc';
+                docs.sort((a, b) => {
+                    if (a[field] < b[field]) return order === 'asc' ? -1 : 1;
+                    if (a[field] > b[field]) return order === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            
+            // Limit
+            if (options.limit) {
+                docs = docs.slice(0, options.limit);
+            }
+            
+            // Offset
+            if (options.offset) {
+                docs = docs.slice(options.offset);
+            }
+            
+            return JSON.stringify(docs);
+        } catch (e) {
+            return '[]';
+        }
+    },
+    update: (collection, id, updateData, projectId = null) => {
+        const filePath = getCollectionPath(collection, projectId);
         let docs = [];
-        
+
         try {
             const content = fs.readFileSync(filePath, 'utf8');
             docs = JSON.parse(content);
         } catch (e) {
             return null;
         }
-        
+
         const docIndex = docs.findIndex(doc => doc.id === id);
         if (docIndex === -1) {
             return null;
         }
-        
+
         docs[docIndex] = { ...docs[docIndex], ...updateData, id };
         fs.writeFileSync(filePath, JSON.stringify(docs));
         return docs[docIndex];
     },
-    delete: (collection, id) => {
-        const filePath = getCollectionPath(collection);
+    delete: (collection, id, projectId = null) => {
+        const filePath = getCollectionPath(collection, projectId);
         let docs = [];
-        
+
         try {
             const content = fs.readFileSync(filePath, 'utf8');
             docs = JSON.parse(content);
@@ -351,6 +417,183 @@ app.post('/auth/logout', authMiddleware, (req, res) => {
 
 app.get('/auth/me', authMiddleware, (req, res) => {
     res.json({ user: req.user });
+});
+
+// Project/Tenant Routes
+app.post('/projects', authMiddleware, (req, res) => {
+    try {
+        const { name, description } = req.body;
+        
+        if (!name) {
+            return res.status(400).json({ error: 'Project name required' });
+        }
+        
+        const result = tenant.createProject(req.user.id, name, description);
+        res.status(201).json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/projects', authMiddleware, (req, res) => {
+    try {
+        const projects = tenant.getUserProjects(req.user.id);
+        res.json({ projects });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/projects/:projectId', authMiddleware, (req, res) => {
+    try {
+        const project = tenant.getProject(req.params.projectId);
+        
+        if (!project || project.ownerId !== req.user.id) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        res.json({ project });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/projects/:projectId/api-keys', authMiddleware, (req, res) => {
+    try {
+        const { name } = req.body;
+        const { projectId } = req.params;
+        
+        const project = tenant.getProject(projectId);
+        
+        if (!project || project.ownerId !== req.user.id) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        const result = tenant.createApiKey(projectId, name || 'New Key');
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/projects/:projectId/api-keys/:apiKey', authMiddleware, (req, res) => {
+    try {
+        const { projectId, apiKey } = req.params;
+        
+        const project = tenant.getProject(projectId);
+        
+        if (!project || project.ownerId !== req.user.id) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        const result = tenant.revokeApiKey(projectId, apiKey);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/projects/:projectId', authMiddleware, (req, res) => {
+    try {
+        const { projectId } = req.params;
+        
+        const project = tenant.getProject(projectId);
+        
+        if (!project || project.ownerId !== req.user.id) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        const result = tenant.deleteProject(projectId);
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Multi-tenant DB routes (with API key auth)
+app.post('/api/:projectId/db/:collection', apiKeyMiddleware, (req, res) => {
+    try {
+        const { collection, projectId } = req.params;
+        const jsonData = JSON.stringify(req.body);
+
+        const docId = db.insert(collection, jsonData, projectId);
+        const result = { id: docId, ...req.body };
+
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/:projectId/db/:collection', apiKeyMiddleware, (req, res) => {
+    try {
+        const { collection, projectId } = req.params;
+        const data = db.get(collection, projectId);
+        res.json(JSON.parse(data));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/:projectId/db/:collection/query', apiKeyMiddleware, (req, res) => {
+    try {
+        const { collection, projectId } = req.params;
+        const { field, value } = req.query;
+
+        if (!field || !value) {
+            return res.status(400).json({ error: 'field and value query parameters required' });
+        }
+
+        const data = db.query(collection, field, value, projectId);
+        res.json(JSON.parse(data));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/:projectId/db/:collection/query', apiKeyMiddleware, (req, res) => {
+    try {
+        const { collection, projectId } = req.params;
+        const options = req.body;
+
+        const data = db.advancedQuery(collection, options, projectId);
+        res.json(JSON.parse(data));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/:projectId/db/:collection/:id', apiKeyMiddleware, (req, res) => {
+    try {
+        const { collection, id, projectId } = req.params;
+        const updateData = req.body;
+
+        const updated = db.update(collection, id, updateData, projectId);
+        
+        if (!updated) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/:projectId/db/:collection/:id', apiKeyMiddleware, (req, res) => {
+    try {
+        const { collection, id, projectId } = req.params;
+
+        const deleted = db.delete(collection, id, projectId);
+        
+        if (!deleted) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        res.json({ success: true, id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Protected DB routes (optional - require auth)

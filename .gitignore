@@ -9,3 +9,4 @@ db-cli
 *~
 data/*.json
 data/.*
+data/projects/

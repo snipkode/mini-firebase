@@ -13,6 +13,10 @@
 - ✅ C++ database engine
 - ✅ Authentication (Register/Login)
 - ✅ Update & Delete documents
+- ✅ Multi-tenant support (Projects)
+- ✅ API Keys management
+- ✅ Advanced queries (sort, limit, where)
+- ✅ Web Dashboard
 
 ---
 
@@ -66,6 +70,7 @@ Server akan berjalan di:
 
 ### REST API
 
+#### Core API
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
 | POST | `/db/:collection` | Insert document |
@@ -73,10 +78,38 @@ Server akan berjalan di:
 | GET | `/db/:collection/query?field=X&value=Y` | Query documents |
 | PUT | `/db/:collection/:id` | Update document |
 | DELETE | `/db/:collection/:id` | Delete document |
+
+#### Authentication
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
 | POST | `/auth/register` | Register user |
 | POST | `/auth/login` | Login user |
 | POST | `/auth/logout` | Logout user |
 | GET | `/auth/me` | Get current user |
+
+#### Multi-tenant (Projects)
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| POST | `/projects` | Create project |
+| GET | `/projects` | List user projects |
+| GET | `/projects/:id` | Get project details |
+| DELETE | `/projects/:id` | Delete project |
+| POST | `/projects/:id/api-keys` | Create API key |
+| DELETE | `/projects/:id/api-keys/:key` | Revoke API key |
+
+#### Project Database (API Key auth)
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| POST | `/api/:projectId/db/:collection` | Insert document |
+| GET | `/api/:projectId/db/:collection` | Get all documents |
+| POST | `/api/:projectId/db/:collection/query` | Advanced query |
+| PUT | `/api/:projectId/db/:collection/:id` | Update document |
+| DELETE | `/api/:projectId/db/:collection/:id` | Delete document |
+
+#### Dashboard
+| Endpoint | Deskripsi |
+|--------|-----------|
+| GET `/` | Web Dashboard UI |
 
 ### Contoh Request
 
@@ -125,6 +158,22 @@ curl -X POST http://localhost:3000/auth/login \
   -d '{"email":"user@example.com","password":"secret123"}'
 ```
 
+**Advanced Query:**
+```bash
+curl -X POST http://localhost:3000/api/PROJECT_ID/db/users/query \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"where":{"status":"active"},"sortBy":"name","order":"asc","limit":10}'
+```
+
+**Create Project:**
+```bash
+curl -X POST http://localhost:3000/projects \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"name":"My App","description":"My awesome project"}'
+```
+
 ---
 
 ## 💻 Client SDK
@@ -135,12 +184,16 @@ curl -X POST http://localhost:3000/auth/login \
 <script src="sdk/index.js"></script>
 <script>
   const db = new MiniFirebase();
-  db.connect();
+  await db.connect();
 
   // Register/Login
   await db.register('user@example.com', 'password123');
-  // or
-  await db.login('user@example.com', 'password123');
+  
+  // Create project
+  const project = await db.createProject('My App', 'Description');
+  
+  // Set project for multi-tenant usage
+  db.setProject(project.project.id, project.apiKey);
 
   const users = db.collection('users');
 
@@ -157,6 +210,14 @@ curl -X POST http://localhost:3000/auth/login \
 
   // Delete data
   await users.delete(doc.id);
+
+  // Advanced query
+  const results = await users.queryAdvanced({
+    where: { status: 'active' },
+    sortBy: 'name',
+    order: 'asc',
+    limit: 10
+  });
 
   // Realtime updates
   const unsubscribe = await users.onSnapshot(data => {
@@ -269,10 +330,10 @@ Document format:
 - [x] Authentication
 - [x] SDK updates
 
-### Phase 3
-- [ ] Multi-tenant support
-- [ ] Dashboard UI
-- [ ] Advanced queries
+### Phase 3 (✅ Completed)
+- [x] Multi-tenant support
+- [x] Dashboard UI
+- [x] Advanced queries
 
 ---
 

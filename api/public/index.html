@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Firebase Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .logo { font-size: 24px; font-weight: bold; color: #ff6b6b; }
+        .logo span { color: #4ecdc4; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #ff6b6b; color: white; }
+        .btn-primary:hover { background: #ff5252; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: white; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        
+        /* Auth Forms */
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: rgba(255,255,255,0.05);
+            padding: 40px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .auth-container h2 { margin-bottom: 20px; text-align: center; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #aaa; }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 14px;
+        }
+        .form-group input:focus { outline: none; border-color: #ff6b6b; }
+        .auth-toggle {
+            text-align: center;
+            margin-top: 20px;
+            color: #aaa;
+        }
+        .auth-toggle a { color: #4ecdc4; cursor: pointer; text-decoration: none; }
+        
+        /* Dashboard */
+        .dashboard { display: none; }
+        .dashboard.active { display: block; }
+        
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-card h3 { color: #aaa; font-size: 14px; margin-bottom: 8px; }
+        .stat-card .value { font-size: 32px; font-weight: bold; color: #4ecdc4; }
+        
+        /* Projects Grid */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .project-card {
+            background: rgba(255,255,255,0.05);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s;
+        }
+        .project-card:hover { transform: translateY(-5px); }
+        .project-card h3 { margin-bottom: 10px; color: #ff6b6b; }
+        .project-card p { color: #aaa; margin-bottom: 15px; font-size: 14px; }
+        .project-card .api-key {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-bottom: 15px;
+            word-break: break-all;
+        }
+        .project-card .actions { display: flex; gap: 10px; }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #1a1a2e;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-content h2 { margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        
+        /* Data Browser */
+        .data-browser {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .data-browser h3 { margin-bottom: 20px; }
+        .collection-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            margin-bottom: 20px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .data-table th { color: #aaa; font-weight: normal; }
+        .data-table tr:hover { background: rgba(255,255,255,0.05); }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: #27ae60;
+            border-radius: 8px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.error { background: #e74c3c; }
+        .toast.active { display: block; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .hidden { display: none; }
+        .text-muted { color: #666; }
+        .mt-2 { margin-top: 10px; }
+        .flex { display: flex; gap: 10px; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Auth Section -->
+        <div id="authSection" class="auth-container">
+            <div class="logo" style="text-align:center;margin-bottom:20px;">
+                🔥 <span>Mini</span> Firebase
+            </div>
+            
+            <!-- Login Form -->
+            <form id="loginForm">
+                <h2>Sign In</h2>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Sign In</button>
+                <div class="auth-toggle">
+                    Don't have an account? <a onclick="showRegister()">Sign Up</a>
+                </div>
+            </form>
+            
+            <!-- Register Form -->
+            <form id="registerForm" class="hidden">
+                <h2>Create Account</h2>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="registerPassword" required placeholder="••••••••" minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Create Account</button>
+                <div class="auth-toggle">
+                    Already have an account? <a onclick="showLogin()">Sign In</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="dashboard">
+            <header>
+                <div class="logo">🔥 <span>Mini</span> Firebase</div>
+                <div class="user-info">
+                    <span id="userEmail"></span>
+                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                </div>
+            </header>
+            
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Projects</h3>
+                    <div class="value" id="projectCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Collections</h3>
+                    <div class="value" id="collectionCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>API Keys</h3>
+                    <div class="value" id="apiKeyCount">0</div>
+                </div>
+            </div>
+            
+            <!-- Projects -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px;">
+                <h2>Your Projects</h2>
+                <button class="btn btn-primary" onclick="showCreateProject()">+ New Project</button>
+            </div>
+            
+            <div class="projects-grid" id="projectsGrid">
+                <!-- Projects will be loaded here -->
+            </div>
+            
+            <!-- Data Browser -->
+            <div class="data-browser" id="dataBrowser">
+                <h3>Data Browser</h3>
+                <select class="collection-select" id="collectionSelect" onchange="loadCollectionData()">
+                    <option value="">Select a collection...</option>
+                </select>
+                <div id="collectionData">
+                    <p class="text-muted">Select a collection to view data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Project Modal -->
+    <div class="modal" id="createProjectModal">
+        <div class="modal-content">
+            <h2>Create New Project</h2>
+            <form id="createProjectForm">
+                <div class="form-group">
+                    <label>Project Name</label>
+                    <input type="text" id="projectName" required placeholder="My Awesome App">
+                </div>
+                <div class="form-group">
+                    <label>Description (optional)</label>
+                    <input type="text" id="projectDescription" placeholder="A brief description">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Create Project</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createProjectModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Project Detail Modal -->
+    <div class="modal" id="projectDetailModal">
+        <div class="modal-content">
+            <h2 id="projectDetailName">Project Details</h2>
+            <div id="projectDetailContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('projectDetailModal')">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        const API_URL = window.location.origin;
+        let token = localStorage.getItem('mf_token');
+        let currentProject = null;
+        
+        // Auth Functions
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        }
+        
+        function showLogin() {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('mf_token', token);
+                    loadDashboard();
+                    showToast('Welcome back!');
+                } else {
+                    showToast(data.error, true);
+                }
+            } catch (err) {
+                showToast('Login failed', true);
+            }
+        });
+        
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('mf_token', token);
+                    loadDashboard();
+                    showToast('Account created!');
+                } else {
+                    showToast(data.error, true);
+                }
+            } catch (err) {
+                showToast('Registration failed', true);
+            }
+        });
+        
+        function logout() {
+            localStorage.removeItem('mf_token');
+            token = null;
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.remove('active');
+        }
+        
+        // Dashboard Functions
+        async function loadDashboard() {
+            if (!token) {
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('dashboardSection').classList.remove('active');
+                return;
+            }
+            
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.add('active');
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                document.getElementById('userEmail').textContent = data.user.email;
+                
+                await loadProjects();
+            } catch (err) {
+                logout();
+            }
+        }
+        
+        async function loadProjects() {
+            try {
+                const res = await fetch(`${API_URL}/projects`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                const grid = document.getElementById('projectsGrid');
+                const projects = data.projects || [];
+                
+                document.getElementById('projectCount').textContent = projects.length;
+                
+                let totalKeys = 0;
+                grid.innerHTML = projects.map(p => {
+                    totalKeys += p.apiKeys?.length || 0;
+                    const apiKey = p.apiKeys?.[0]?.key || 'No API key';
+                    return `
+                        <div class="project-card">
+                            <h3>${p.name}</h3>
+                            <p>${p.description || 'No description'}</p>
+                            <div class="api-key">🔑 ${apiKey.substring(0, 20)}...</div>
+                            <div class="actions">
+                                <button class="btn btn-secondary" onclick="viewProject('${p.id}')">View</button>
+                                <button class="btn btn-success" onclick="copyApiKey('${apiKey}')">Copy Key</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                if (projects.length === 0) {
+                    grid.innerHTML = '<p class="text-muted">No projects yet. Create your first project!</p>';
+                }
+                
+                document.getElementById('apiKeyCount').textContent = totalKeys;
+                document.getElementById('collectionCount').textContent = projects.length > 0 ? '3+' : '0';
+            } catch (err) {
+                console.error('Failed to load projects:', err);
+            }
+        }
+        
+        function showCreateProject() {
+            document.getElementById('createProjectModal').classList.add('active');
+        }
+        
+        document.getElementById('createProjectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('projectName').value;
+            const description = document.getElementById('projectDescription').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/projects`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, description })
+                });
+                const data = await res.json();
+                
+                if (data.project) {
+                    closeModal('createProjectModal');
+                    document.getElementById('createProjectForm').reset();
+                    await loadProjects();
+                    showToast('Project created!');
+                } else {
+                    showToast(data.error, true);
+                }
+            } catch (err) {
+                showToast('Failed to create project', true);
+            }
+        });
+        
+        async function viewProject(projectId) {
+            try {
+                const res = await fetch(`${API_URL}/projects/${projectId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.project) {
+                    currentProject = data.project;
+                    document.getElementById('projectDetailName').textContent = data.project.name;
+                    document.getElementById('projectDetailContent').innerHTML = `
+                        <p><strong>Description:</strong> ${data.project.description || 'N/A'}</p>
+                        <p><strong>Created:</strong> ${new Date(data.project.createdAt).toLocaleDateString()}</p>
+                        <p><strong>API Keys:</strong> ${data.project.apiKeys?.length || 0}</p>
+                        <div class="mt-2">
+                            <strong>API Keys:</strong>
+                            ${data.project.apiKeys?.map(k => `
+                                <div class="api-key">${k.key} <span class="text-muted">(${k.name})</span></div>
+                            `).join('') || '<p class="text-muted">No API keys</p>'}
+                        </div>
+                    `;
+                    document.getElementById('projectDetailModal').classList.add('active');
+                    
+                    // Load collections for this project
+                    loadProjectCollections(projectId);
+                }
+            } catch (err) {
+                showToast('Failed to load project', true);
+            }
+        }
+        
+        async function loadProjectCollections(projectId) {
+            // This would require an endpoint to list collections
+            // For now, just show a message
+        }
+        
+        function copyApiKey(key) {
+            navigator.clipboard.writeText(key);
+            showToast('API key copied!');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast active' + (isError ? ' error' : '');
+            setTimeout(() => toast.classList.remove('active'), 3000);
+        }
+        
+        // Collection Data Functions
+        async function loadCollectionData() {
+            const collection = document.getElementById('collectionSelect').value;
+            if (!collection || !currentProject) return;
+            
+            try {
+                const apiKey = currentProject.apiKeys?.[0]?.key;
+                if (!apiKey) {
+                    document.getElementById('collectionData').innerHTML = '<p class="text-muted">No API key available</p>';
+                    return;
+                }
+                
+                const res = await fetch(`${API_URL}/api/${currentProject.id}/db/${collection}`, {
+                    headers: { 'x-api-key': apiKey }
+                });
+                const data = await res.json();
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    const keys = Object.keys(data[0]);
+                    document.getElementById('collectionData').innerHTML = `
+                        <table class="data-table">
+                            <thead>
+                                <tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody>
+                                ${data.map(row => `
+                                    <tr>${keys.map(k => `<td>${row[k] !== undefined ? row[k] : ''}</td>`).join('')}</tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    document.getElementById('collectionData').innerHTML = '<p class="text-muted">No data in this collection</p>';
+                }
+            } catch (err) {
+                document.getElementById('collectionData').innerHTML = '<p class="text-muted">Failed to load data</p>';
+            }
+        }
+        
+        // Initialize
+        loadDashboard();
+    </script>
+</body>
+</html>
