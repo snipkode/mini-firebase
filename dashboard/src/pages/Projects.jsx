@@ -11,6 +11,7 @@ export default function Projects() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [newProject, setNewProject] = useState({ name: '', description: '' })
+  const [copyToast, setCopyToast] = useState(false)
 
   useEffect(() => {
     fetchProjects()
@@ -55,7 +56,8 @@ export default function Projects() {
   async function copyApiKey(key) {
     if (!key) return
     await navigator.clipboard.writeText(key)
-    alert('API key copied!')
+    setCopyToast(true)
+    setTimeout(() => setCopyToast(false), 2000)
   }
 
   return (
@@ -213,6 +215,13 @@ export default function Projects() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Copy Toast */}
+      {copyToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-green-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          ✓ API key copied!
         </div>
       )}
     </div>

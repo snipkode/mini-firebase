@@ -48,7 +48,8 @@ export default function DataBrowser() {
   const [viewMode, setViewMode] = useState('table')
   const [editMode, setEditMode] = useState(false)
   const [editingDocId, setEditingDocId] = useState(null)
-  
+  const [jsonError, setJsonError] = useState('')
+
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info' })
   const [inputDialog, setInputDialog] = useState({ isOpen: false, title: '', label: '', placeholder: '', onConfirm: null, type: 'text' })
@@ -216,7 +217,8 @@ export default function DataBrowser() {
         }
       }
     } catch (err) {
-      alert('Invalid JSON')
+      setJsonError('Invalid JSON format. Please check your syntax.')
+      setTimeout(() => setJsonError(''), 3000)
     }
   }
 
@@ -531,6 +533,11 @@ export default function DataBrowser() {
         <form onSubmit={handleAddDoc}>
           <div className="mb-4">
             <label className="block text-xs text-gray-400 mb-2 font-medium">Document Fields</label>
+            {jsonError && (
+              <div className="mb-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs px-3 py-2 rounded-lg">
+                {jsonError}
+              </div>
+            )}
             <div className="bg-bg-card border border-border rounded-lg p-4 max-h-[500px] overflow-y-auto scrollbar-thin">
               <CollectionEditor
                 value={newDoc}
@@ -544,6 +551,7 @@ export default function DataBrowser() {
               setEditMode(false)
               setEditingDocId(null)
               setNewDoc('{}')
+              setJsonError('')
             }}>
               Cancel
             </button>
