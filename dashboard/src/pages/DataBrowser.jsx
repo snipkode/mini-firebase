@@ -46,6 +46,8 @@ export default function DataBrowser() {
   const [newDoc, setNewDoc] = useState('{}')
   const [newCollection, setNewCollection] = useState('')
   const [viewMode, setViewMode] = useState('table')
+  const [editMode, setEditMode] = useState(false)
+  const [editingDocId, setEditingDocId] = useState(null)
   
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info' })
@@ -179,18 +181,39 @@ export default function DataBrowser() {
     e.preventDefault()
     try {
       const doc = JSON.parse(newDoc)
-      const res = await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey
-        },
-        body: JSON.stringify(doc)
-      })
-      if (res.ok) {
-        setShowAddDoc(false)
-        setNewDoc('{}')
-        fetchData(apiKey, selectedCollection)
+      
+      if (editMode && editingDocId) {
+        // Update existing document
+        const res = await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}/${editingDocId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          },
+          body: JSON.stringify(doc)
+        })
+        if (res.ok) {
+          setShowAddDoc(false)
+          setEditMode(false)
+          setEditingDocId(null)
+          setNewDoc('{}')
+          fetchData(apiKey, selectedCollection)
+        }
+      } else {
+        // Add new document
+        const res = await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          },
+          body: JSON.stringify(doc)
+        })
+        if (res.ok) {
+          setShowAddDoc(false)
+          setNewDoc('{}')
+          fetchData(apiKey, selectedCollection)
+        }
       }
     } catch (err) {
       alert('Invalid JSON')
@@ -218,29 +241,10 @@ export default function DataBrowser() {
   }
 
   function handleEditDoc(doc) {
-    setInputDialog({
-      isOpen: true,
-      title: 'Edit Document',
-      label: 'JSON Data',
-      placeholder: '{"name": "Example"}',
-      type: 'textarea',
-      onConfirm: async (updatedJson) => {
-        try {
-          const updatedDoc = JSON.parse(updatedJson)
-          await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}/${doc.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': apiKey
-            },
-            body: JSON.stringify(updatedDoc)
-          })
-          fetchData(apiKey, selectedCollection)
-        } catch (err) {
-          alert('Invalid JSON')
-        }
-      }
-    })
+    setEditMode(true)
+    setEditingDocId(doc.id)
+    setNewDoc(JSON.stringify(doc))
+    setShowAddDoc(true)
   }
 
   const getDocFields = (doc) => {
@@ -512,11 +516,16 @@ export default function DataBrowser() {
         </div>
       </div>
 
-      {/* Add Document Modal */}
+      {/* Add/Edit Document Modal */}
       <Modal
         isOpen={showAddDoc}
-        onClose={() => setShowAddDoc(false)}
-        title="Add Document"
+        onClose={() => {
+          setShowAddDoc(false)
+          setEditMode(false)
+          setEditingDocId(null)
+          setNewDoc('{}')
+        }}
+        title={editMode ? 'Edit Document' : 'Add Document'}
         size="xl"
       >
         <form onSubmit={handleAddDoc}>
@@ -530,11 +539,16 @@ export default function DataBrowser() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="button" className="flex-1 bg-bg-card hover:bg-border text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors" onClick={() => setShowAddDoc(false)}>
+            <button type="button" className="flex-1 bg-bg-card hover:bg-border text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors" onClick={() => {
+              setShowAddDoc(false)
+              setEditMode(false)
+              setEditingDocId(null)
+              setNewDoc('{}')
+            }}>
               Cancel
             </button>
             <button type="submit" className="flex-1 bg-accent hover:bg-blue-600 text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors">
-              Add Document
+              {editMode ? 'Save Changes' : 'Add Document'}
             </button>
           </div>
         </form>
