@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import JsonTreeInput from '../components/JsonTreeInput'
+import CollectionEditor from '../components/CollectionEditor'
 import Modal from '../components/Modal'
 import ConfirmDialog from '../components/ConfirmDialog'
 import InputDialog from '../components/InputDialog'
@@ -517,14 +517,14 @@ export default function DataBrowser() {
         isOpen={showAddDoc}
         onClose={() => setShowAddDoc(false)}
         title="Add Document"
-        size="lg"
+        size="xl"
       >
         <form onSubmit={handleAddDoc}>
           <div className="mb-4">
-            <label className="block text-xs text-gray-400 mb-1.5 font-medium">Document Fields</label>
-            <div className="bg-bg-card border border-border rounded-lg p-3 max-h-[400px] overflow-y-auto scrollbar-thin">
-              <JsonTreeInput 
-                value={newDoc} 
+            <label className="block text-xs text-gray-400 mb-2 font-medium">Document Fields</label>
+            <div className="bg-bg-card border border-border rounded-lg p-4 max-h-[500px] overflow-y-auto scrollbar-thin">
+              <CollectionEditor
+                value={newDoc}
                 onChange={setNewDoc}
               />
             </div>
