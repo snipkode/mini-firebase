@@ -4,9 +4,12 @@ node_modules/
 *.so
 db-cli
 .env
+.env.local
 *.swp
 *.swo
 *~
 data/*.json
 data/.*
 data/projects/
+logs/
+backups/

@@ -1,18 +1,47 @@
+require('dotenv').config();
+
 const express = require('express');
 const WebSocket = require('ws');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
 const auth = require('./auth');
 const tenant = require('./tenant');
+const logger = require('./logger');
+const { apiLimiter, authLimiter, projectLimiter, dbLimiter, writeLimiter } = require('./rateLimiter');
+const { validateCollection, validateDocument } = require('./validator');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const WS_PORT = process.env.WS_PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+// Security middleware
+app.use(helmet());
+app.use(compression());
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    credentials: true
+}));
+
+// Rate limiting
+app.use('/api/', apiLimiter);
+app.use('/auth/', authLimiter);
+app.use('/projects', projectLimiter);
+app.use('/db/', dbLimiter);
+
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static('public'));
+
+// Request logging
+app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.path}`, {
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+    });
+    next();
+});
 
 // Auth middleware
 const authMiddleware = (req, res, next) => {
@@ -361,7 +390,7 @@ app.delete('/db/:collection/:id', (req, res) => {
 });
 
 // Auth Routes
-app.post('/auth/register', (req, res) => {
+app.post('/auth/register', authLimiter, (req, res) => {
     try {
         const { email, password } = req.body;
         
@@ -379,28 +408,33 @@ app.post('/auth/register', (req, res) => {
             return res.status(400).json(result);
         }
         
+        logger.info('User registered', { email });
         res.status(201).json(result);
     } catch (err) {
+        logger.error('Registration error', { error: err.message });
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/auth/login', (req, res) => {
+app.post('/auth/login', authLimiter, (req, res) => {
     try {
         const { email, password } = req.body;
-        
+
         if (!email || !password) {
             return res.status(400).json({ error: 'email and password required' });
         }
-        
+
         const result = auth.login(email, password);
-        
+
         if (result.error) {
+            logger.warn('Failed login attempt', { email });
             return res.status(401).json(result);
         }
-        
+
+        logger.info('User logged in', { email });
         res.json(result);
     } catch (err) {
+        logger.error('Login error', { error: err.message });
         res.status(500).json({ error: err.message });
     }
 });
@@ -592,6 +626,7 @@ app.delete('/api/:projectId/db/:collection/:id', apiKeyMiddleware, (req, res) =>
 
         res.json({ success: true, id });
     } catch (err) {
+        logger.error('Delete error', { collection, id, error: err.message });
         res.status(500).json({ error: err.message });
     }
 });
@@ -599,11 +634,44 @@ app.delete('/api/:projectId/db/:collection/:id', apiKeyMiddleware, (req, res) =>
 // Protected DB routes (optional - require auth)
 app.use('/db', authMiddleware);
 
+// Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    logger.error('Unhandled error', {
+        error: err.message,
+        stack: err.stack,
+        path: req.path
+    });
+    
+    res.status(500).json({
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    });
+});
+
 app.listen(PORT, () => {
+    logger.info('Server started', { port: PORT, env: process.env.NODE_ENV || 'development' });
     console.log(`✓ REST API running on port ${PORT}`);
     console.log(`✓ Mini Firebase ready!`);
+    console.log(`✓ Dashboard: http://localhost:${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, shutting down gracefully');
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    logger.info('SIGINT received, shutting down gracefully');
+    process.exit(0);
 });

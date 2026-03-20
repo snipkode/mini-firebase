@@ -35,7 +35,7 @@ mini-firebase/
 
 ## 🛠️ Installation
 
-### 1. Build C++ Engine
+### 1. Build C++ Engine (Optional)
 
 ```bash
 cd cpp-engine
@@ -47,6 +47,14 @@ make
 ```bash
 cd api
 npm install
+```
+
+### 3. Configure Environment
+
+```bash
+cd api
+cp .env.example .env
+# Edit .env with your settings
 ```
 
 ---
@@ -65,11 +73,25 @@ Server akan berjalan di:
 - WebSocket: `ws://localhost:3001`
 - Dashboard: `http://localhost:3000` (web UI)
 
+### Docker Deployment
+
+```bash
+# Build and run
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Backup
+docker-compose exec mini-firebase npm run backup
+```
+
 ---
 
 ## 📚 Documentation
 
 - **[Multi-Tenant Guide](docs/MULTI-TENANT.md)** - Panduan lengkap setup tenant
+- **[Production Setup](docs/PRODUCTION.md)** - Deployment & security guide
 - **[API Reference](#-api-reference)** - REST API documentation
 - **[SDK Reference](#-client-sdk)** - Client library usage
 

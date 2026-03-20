@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  mini-firebase:
+    build: .
+    container_name: mini-firebase
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - WS_PORT=3001
+      - DATA_DIR=/app/data
+      - LOG_LEVEL=info
+      - BACKUP_ENABLED=true
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Auto backup service (optional)
+  backup:
+    image: node:18-alpine
+    container_name: mini-firebase-backup
+    volumes:
+      - ./data:/app/data
+      - ./backups:/app/backups
+    working_dir: /app/api
+    command: >
+      sh -c "
+        while true; do
+          node scripts/backup.js;
+          sleep 86400;
+        done
+      "
+    restart: unless-stopped
+    depends_on:
+      - mini-firebase
