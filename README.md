@@ -63,6 +63,15 @@ npm start
 Server akan berjalan di:
 - REST API: `http://localhost:3000`
 - WebSocket: `ws://localhost:3001`
+- Dashboard: `http://localhost:3000` (web UI)
+
+---
+
+## 📚 Documentation
+
+- **[Multi-Tenant Guide](docs/MULTI-TENANT.md)** - Panduan lengkap setup tenant
+- **[API Reference](#-api-reference)** - REST API documentation
+- **[SDK Reference](#-client-sdk)** - Client library usage
 
 ---
 
