@@ -658,6 +658,18 @@ app.use((err, req, res, next) => {
     });
 });
 
+// SPA Fallback - Serve index.html for all non-API routes (React Router)
+app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/') || 
+        req.path.startsWith('/auth/') || 
+        req.path.startsWith('/db/') || 
+        req.path.startsWith('/projects/')) {
+        return next();
+    }
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.listen(PORT, () => {
     logger.info('Server started', { port: PORT, env: process.env.NODE_ENV || 'development' });
     console.log(`✓ REST API running on port ${PORT}`);
