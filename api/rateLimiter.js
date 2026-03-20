@@ -24,12 +24,12 @@ const apiLimiter = rateLimit({
 // Strict rate limiter for auth endpoints
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 10 requests per window
+    max: 100, // 100 requests per window (increased for development)
     message: {
         error: 'Too many authentication attempts',
         message: 'Please try again after 15 minutes'
     },
-    skipSuccessfulRequests: true
+    skipSuccessfulRequests: false // Count all requests
 });
 
 // Project creation limiter
