@@ -5,6 +5,28 @@ import JsonTreeInput from '../components/JsonTreeInput'
 
 const API_URL = ''
 
+function syntaxHighlight(json) {
+  if (!json) return ''
+  
+  json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+    let cls = 'text-green-400' // number
+    if (/^"/.test(match)) {
+      if (/:$/.test(match)) {
+        cls = 'text-red-400' // key
+      } else {
+        cls = 'text-green-400' // string
+      }
+    } else if (/true|false/.test(match)) {
+      cls = 'text-orange-400' // boolean
+    } else if (/null/.test(match)) {
+      cls = 'text-purple-400' // null
+    }
+    return `<span class="${cls}">${match}</span>`
+  })
+}
+
 export default function DataBrowser() {
   const { projectId } = useParams()
   const navigate = useNavigate()
@@ -445,9 +467,11 @@ export default function DataBrowser() {
                             </button>
                           </div>
                         </div>
-                        <div className="p-3 overflow-x-auto">
-                          <pre className="text-xs font-mono text-gray-300">
-                            <code>{JSON.stringify(doc, null, 2)}</code>
+                        <div className="p-3 overflow-x-auto bg-[#0d1117]">
+                          <pre className="text-xs font-mono leading-relaxed">
+                            <code dangerouslySetInnerHTML={{ 
+                              __html: syntaxHighlight(JSON.stringify(doc, null, 2)) 
+                            }} />
                           </pre>
                         </div>
                       </div>

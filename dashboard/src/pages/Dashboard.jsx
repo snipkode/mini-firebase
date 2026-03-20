@@ -23,9 +23,33 @@ export default function Dashboard() {
       const data = await res.json()
       const projs = data.projects || []
       setProjects(projs)
+      
+      // Count actual collections by checking each project
+      let totalCollections = 0
+      const commonCollections = ['users', 'posts', 'products', 'orders', 'items', 'data']
+      
+      for (const project of projs) {
+        const apiKey = project.apiKeys?.[0]?.key
+        if (apiKey) {
+          for (const col of commonCollections) {
+            try {
+              const res = await fetch(`${API_URL}/api/${project.id}/db/${col}`, {
+                headers: { 'x-api-key': apiKey }
+              })
+              if (res.ok) {
+                const colData = await res.json()
+                if (Array.isArray(colData) && colData.length > 0) {
+                  totalCollections++
+                }
+              }
+            } catch (err) {}
+          }
+        }
+      }
+      
       setStats({
         projects: projs.length,
-        collections: projs.length * 3,
+        collections: totalCollections,
         apiKeys: projs.reduce((sum, p) => sum + (p.apiKeys?.length || 0), 0)
       })
     } catch (err) {

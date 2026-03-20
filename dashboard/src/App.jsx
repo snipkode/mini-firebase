@@ -7,7 +7,16 @@ import DataBrowser from './pages/DataBrowser'
 import Settings from './pages/Settings'
 
 function ProtectedRoute({ children }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    )
+  }
+  
   return user ? children : <Navigate to="/login" replace />
 }
 
