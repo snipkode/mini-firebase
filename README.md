@@ -92,8 +92,8 @@ docker-compose exec mini-firebase npm run backup
 
 - **[Multi-Tenant Guide](docs/MULTI-TENANT.md)** - Panduan lengkap setup tenant
 - **[Production Setup](docs/PRODUCTION.md)** - Deployment & security guide
+- **[JavaScript SDK](docs/SDK-JAVASCRIPT.md)** - Client library documentation
 - **[API Reference](#-api-reference)** - REST API documentation
-- **[SDK Reference](#-client-sdk)** - Client library usage
 
 ---
 
