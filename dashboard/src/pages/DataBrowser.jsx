@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import JsonTreeInput from '../components/JsonTreeInput'
+import Modal from '../components/Modal'
+import ConfirmDialog from '../components/ConfirmDialog'
+import InputDialog from '../components/InputDialog'
 
 const API_URL = ''
 
@@ -42,7 +45,11 @@ export default function DataBrowser() {
   const [showCreateCollection, setShowCreateCollection] = useState(false)
   const [newDoc, setNewDoc] = useState('{}')
   const [newCollection, setNewCollection] = useState('')
-  const [viewMode, setViewMode] = useState('table') // table, json
+  const [viewMode, setViewMode] = useState('table')
+  
+  // Dialog states
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info' })
+  const [inputDialog, setInputDialog] = useState({ isOpen: false, title: '', label: '', placeholder: '', onConfirm: null, type: 'text' })
 
   useEffect(() => {
     fetchProject()
@@ -109,55 +116,63 @@ export default function DataBrowser() {
     }
   }
 
-  async function handleCreateCollection(e) {
-    e.preventDefault()
-    if (!newCollection.trim()) return
-    
-    // Create collection by inserting first document
-    try {
-      const res = await fetch(`${API_URL}/api/${projectId}/db/${newCollection}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey
-        },
-        body: JSON.stringify({ _created: new Date().toISOString() })
-      })
-      if (res.ok) {
-        setShowCreateCollection(false)
-        setNewCollection('')
-        fetchCollections(apiKey)
+  function handleCreateCollectionClick() {
+    setInputDialog({
+      isOpen: true,
+      title: 'Create Collection',
+      label: 'Collection Name',
+      placeholder: 'e.g., users, products, orders',
+      type: 'text',
+      onConfirm: async (name) => {
+        try {
+          const res = await fetch(`${API_URL}/api/${projectId}/db/${name}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey
+            },
+            body: JSON.stringify({ _created: new Date().toISOString() })
+          })
+          if (res.ok) {
+            fetchCollections(apiKey)
+          }
+        } catch (err) {
+          console.error(err)
+        }
       }
-    } catch (err) {
-      console.error(err)
-    }
+    })
   }
 
-  async function handleDeleteCollection(collection) {
-    if (!confirm(`Delete collection "${collection}"? All documents will be deleted.`)) return
-    
-    try {
-      // Delete all documents in collection
-      const res = await fetch(`${API_URL}/api/${projectId}/db/${collection}`, {
-        headers: { 'x-api-key': apiKey }
-      })
-      const docs = await res.json()
-      
-      for (const doc of docs) {
-        await fetch(`${API_URL}/api/${projectId}/db/${collection}/${doc.id}`, {
-          method: 'DELETE',
-          headers: { 'x-api-key': apiKey }
-        })
+  function handleDeleteCollection(collection) {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Collection',
+      message: `Are you sure you want to delete "${collection}"? All documents will be permanently deleted.`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/${projectId}/db/${collection}`, {
+            headers: { 'x-api-key': apiKey }
+          })
+          const docs = await res.json()
+          
+          for (const doc of docs) {
+            await fetch(`${API_URL}/api/${projectId}/db/${collection}/${doc.id}`, {
+              method: 'DELETE',
+              headers: { 'x-api-key': apiKey }
+            })
+          }
+          
+          fetchCollections(apiKey)
+          if (selectedCollection === collection) {
+            setSelectedCollection('')
+            setData([])
+          }
+        } catch (err) {
+          console.error(err)
+        }
       }
-      
-      fetchCollections(apiKey)
-      if (selectedCollection === collection) {
-        setSelectedCollection('')
-        setData([])
-      }
-    } catch (err) {
-      console.error(err)
-    }
+    })
   }
 
   async function handleAddDoc(e) {
@@ -182,37 +197,50 @@ export default function DataBrowser() {
     }
   }
 
-  async function handleDeleteDoc(id) {
-    if (!confirm('Delete this document?')) return
-    try {
-      await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-api-key': apiKey }
-      })
-      fetchData(apiKey, selectedCollection)
-    } catch (err) {
-      console.error(err)
-    }
+  function handleDeleteDoc(id) {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Document',
+      message: 'Are you sure you want to delete this document? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}/${id}`, {
+            method: 'DELETE',
+            headers: { 'x-api-key': apiKey }
+          })
+          fetchData(apiKey, selectedCollection)
+        } catch (err) {
+          console.error(err)
+        }
+      }
+    })
   }
 
-  async function handleEditDoc(doc) {
-    const updated = prompt('Edit document (JSON):', JSON.stringify(doc, null, 2))
-    if (!updated) return
-    
-    try {
-      const updatedDoc = JSON.parse(updated)
-      await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}/${doc.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey
-        },
-        body: JSON.stringify(updatedDoc)
-      })
-      fetchData(apiKey, selectedCollection)
-    } catch (err) {
-      alert('Invalid JSON')
-    }
+  function handleEditDoc(doc) {
+    setInputDialog({
+      isOpen: true,
+      title: 'Edit Document',
+      label: 'JSON Data',
+      placeholder: '{"name": "Example"}',
+      type: 'textarea',
+      onConfirm: async (updatedJson) => {
+        try {
+          const updatedDoc = JSON.parse(updatedJson)
+          await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}/${doc.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey
+            },
+            body: JSON.stringify(updatedDoc)
+          })
+          fetchData(apiKey, selectedCollection)
+        } catch (err) {
+          alert('Invalid JSON')
+        }
+      }
+    })
   }
 
   const getDocFields = (doc) => {
@@ -290,9 +318,9 @@ export default function DataBrowser() {
             <div className="bg-bg-secondary border border-border rounded-xl overflow-hidden">
               <div className="p-2.5 border-b border-border flex items-center justify-between">
                 <h2 className="text-xs font-semibold text-gray-300">Collections</h2>
-                <button 
+                <button
                   className="p-1 rounded hover:bg-bg-card text-accent"
-                  onClick={() => setShowCreateCollection(true)}
+                  onClick={handleCreateCollectionClick}
                   title="Create collection"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,7 +355,7 @@ export default function DataBrowser() {
                         </div>
                       </div>
                       <button
-                        className="p-1 rounded hover:bg-red-500/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1 rounded hover:bg-red-500/10 hover:text-red-400 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleDeleteCollection(col.name)
@@ -484,65 +512,54 @@ export default function DataBrowser() {
         </div>
       </div>
 
-      {/* Create Collection Modal */}
-      {showCreateCollection && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowCreateCollection(false)}>
-          <div className="bg-bg-secondary border border-border rounded-xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-base font-semibold mb-4">New Collection</h2>
-            <form onSubmit={handleCreateCollection}>
-              <div className="mb-4">
-                <label className="block text-xs text-gray-400 mb-1.5 font-medium">Collection Name</label>
-                <input
-                  type="text"
-                  className="w-full bg-bg-card border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent transition-colors"
-                  value={newCollection}
-                  onChange={(e) => setNewCollection(e.target.value)}
-                  placeholder="e.g., users, products"
-                  required
-                  autoFocus
-                  pattern="[a-zA-Z][a-zA-Z0-9_-]*"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button type="button" className="flex-1 bg-bg-card hover:bg-border text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors" onClick={() => setShowCreateCollection(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 bg-accent hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Add Document Modal */}
-      {showAddDoc && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowAddDoc(false)}>
-          <div className="bg-bg-secondary border border-border rounded-xl p-5 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-base font-semibold mb-4">Add Document</h2>
-            <form onSubmit={handleAddDoc}>
-              <div className="mb-4">
-                <label className="block text-xs text-gray-400 mb-1.5 font-medium">Document Fields</label>
-                <div className="bg-bg-card border border-border rounded-lg p-3 max-h-[400px] overflow-y-auto scrollbar-thin">
-                  <JsonTreeInput 
-                    value={newDoc} 
-                    onChange={setNewDoc}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" className="flex-1 bg-bg-card hover:bg-border text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors" onClick={() => setShowAddDoc(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 bg-accent hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">
-                  Add Document
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showAddDoc}
+        onClose={() => setShowAddDoc(false)}
+        title="Add Document"
+        size="lg"
+      >
+        <form onSubmit={handleAddDoc}>
+          <div className="mb-4">
+            <label className="block text-xs text-gray-400 mb-1.5 font-medium">Document Fields</label>
+            <div className="bg-bg-card border border-border rounded-lg p-3 max-h-[400px] overflow-y-auto scrollbar-thin">
+              <JsonTreeInput 
+                value={newDoc} 
+                onChange={setNewDoc}
+              />
+            </div>
           </div>
-        </div>
-      )}
+          <div className="flex gap-2">
+            <button type="button" className="flex-1 bg-bg-card hover:bg-border text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors" onClick={() => setShowAddDoc(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="flex-1 bg-accent hover:bg-blue-600 text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors">
+              Add Document
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+      />
+
+      {/* Input Dialog */}
+      <InputDialog
+        isOpen={inputDialog.isOpen}
+        onClose={() => setInputDialog({ ...inputDialog, isOpen: false })}
+        onConfirm={inputDialog.onConfirm}
+        title={inputDialog.title}
+        label={inputDialog.label}
+        placeholder={inputDialog.placeholder}
+        type={inputDialog.type}
+      />
     </div>
   )
 }
