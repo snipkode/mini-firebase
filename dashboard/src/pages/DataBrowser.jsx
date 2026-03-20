@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import JsonTreeInput from '../components/JsonTreeInput'
 
 const API_URL = ''
 
@@ -478,27 +479,24 @@ export default function DataBrowser() {
       {/* Add Document Modal */}
       {showAddDoc && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowAddDoc(false)}>
-          <div className="bg-bg-secondary border border-border rounded-xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-bg-secondary border border-border rounded-xl p-5 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-base font-semibold mb-4">Add Document</h2>
             <form onSubmit={handleAddDoc}>
               <div className="mb-4">
-                <label className="block text-xs text-gray-400 mb-1.5 font-medium">JSON Data</label>
-                <textarea
-                  className="w-full bg-bg-card border border-border rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-accent transition-colors resize-none"
-                  value={newDoc}
-                  onChange={(e) => setNewDoc(e.target.value)}
-                  placeholder='{"name": "Example", "value": 123}'
-                  rows={6}
-                  required
-                  autoFocus
-                />
+                <label className="block text-xs text-gray-400 mb-1.5 font-medium">Document Fields</label>
+                <div className="bg-bg-card border border-border rounded-lg p-3 max-h-[400px] overflow-y-auto scrollbar-thin">
+                  <JsonTreeInput 
+                    value={newDoc} 
+                    onChange={setNewDoc}
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
                 <button type="button" className="flex-1 bg-bg-card hover:bg-border text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors" onClick={() => setShowAddDoc(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="flex-1 bg-accent hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">
-                  Add
+                  Add Document
                 </button>
               </div>
             </form>
