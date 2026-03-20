@@ -1,104 +1,79 @@
 .projects-page {
   min-height: 100vh;
-  padding-bottom: 80px;
+  padding-bottom: 60px;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .header-left h1 {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
 }
 
 .project-card {
   background: var(--bg-secondary);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 14px;
   border: 1px solid var(--border);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.project-card:active {
-  transform: scale(0.98);
 }
 
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .project-icon {
-  font-size: 36px;
+  font-size: 28px;
   background: var(--bg-card);
-  border-radius: 12px;
-  width: 56px;
-  height: 56px;
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.project-actions {
-  display: flex;
-  gap: 8px;
-}
-
 .project-card h3 {
-  font-size: 18px;
-  margin-bottom: 8px;
+  font-size: 15px;
+  margin-bottom: 6px;
 }
 
 .project-desc {
   color: var(--text-secondary);
-  font-size: 14px;
-  margin-bottom: 16px;
-  line-height: 1.4;
+  font-size: 12px;
+  margin-bottom: 12px;
+  min-height: 32px;
 }
 
 .project-meta {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .project-api-key {
   background: var(--bg-card);
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 16px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
 }
 
 .project-api-key code {
   font-family: 'SF Mono', Monaco, monospace;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-secondary);
   word-break: break-all;
-}
-
-.project-footer {
-  display: flex;
-  gap: 8px;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.modal-actions .btn {
-  flex: 1;
 }
 
 @media (max-width: 480px) {

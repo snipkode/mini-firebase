@@ -28,19 +28,19 @@ export default function Settings() {
         </div>
 
         <div className="settings-section">
-          <h2>Preferences</h2>
+          <h2>App</h2>
           <div className="setting-card">
             <div className="setting-icon">🎨</div>
             <div className="setting-info">
               <div className="setting-label">Theme</div>
-              <div className="setting-value">Dark (Default)</div>
+              <div className="setting-value">Dark</div>
             </div>
           </div>
           <div className="setting-card">
             <div className="setting-icon">📱</div>
             <div className="setting-info">
-              <div className="setting-label">Compact Mode</div>
-              <div className="setting-value">Enabled</div>
+              <div className="setting-label">Mode</div>
+              <div className="setting-value">Compact</div>
             </div>
           </div>
         </div>
@@ -54,16 +54,9 @@ export default function Settings() {
               <div className="setting-value">v1.0.0</div>
             </div>
           </div>
-          <div className="setting-card">
-            <div className="setting-icon">📄</div>
-            <div className="setting-info">
-              <div className="setting-label">Documentation</div>
-              <a href="/docs" className="setting-link">View Docs →</a>
-            </div>
-          </div>
         </div>
 
-        <button className="btn btn-danger btn-full" onClick={logout}>
+        <button className="btn btn-danger btn-full btn-sm" onClick={logout}>
           Sign Out
         </button>
 

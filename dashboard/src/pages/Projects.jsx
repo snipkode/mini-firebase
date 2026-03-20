@@ -54,8 +54,9 @@ export default function Projects() {
   }
 
   async function copyApiKey(key) {
+    if (!key) return
     await navigator.clipboard.writeText(key)
-    alert('API key copied!')
+    alert('Copied!')
   }
 
   return (
@@ -76,10 +77,10 @@ export default function Projects() {
         ) : projects.length === 0 ? (
           <div className="empty">
             <div className="empty-icon">📭</div>
-            <h3>No projects yet</h3>
-            <p>Create your first project to get started</p>
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-              Create Project
+            <h3>No projects</h3>
+            <p className="text-muted">Create your first project</p>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)} style={{ marginTop: 12 }}>
+              + Create Project
             </button>
           </div>
         ) : (
@@ -88,34 +89,33 @@ export default function Projects() {
               <div key={project.id} className="project-card">
                 <div className="project-header">
                   <div className="project-icon">🚀</div>
-                  <div className="project-actions">
-                    <button
-                      className="btn-icon"
-                      onClick={() => copyApiKey(project.apiKeys?.[0]?.key)}
-                    >
-                      📋
-                    </button>
-                  </div>
+                  <button
+                    className="btn-icon"
+                    onClick={() => copyApiKey(project.apiKeys?.[0]?.key)}
+                    title="Copy API key"
+                  >
+                    📋
+                  </button>
                 </div>
-                <h3>{project.name}</h3>
-                <p className="project-desc">{project.description || 'No description'}</p>
+                <h3 className="text-truncate">{project.name}</h3>
+                <p className="project-desc text-truncate">
+                  {project.description || 'No description'}
+                </p>
                 <div className="project-meta">
                   <span className="badge badge-primary">
-                    {project.apiKeys?.length || 0} API keys
+                    {project.apiKeys?.length || 0} keys
                   </span>
                   <span className="badge badge-success">Active</span>
                 </div>
                 <div className="project-api-key">
-                  <code>{project.apiKeys?.[0]?.key?.slice(0, 20)}...</code>
+                  <code>{project.apiKeys?.[0]?.key?.slice(0, 16)}...</code>
                 </div>
-                <div className="project-footer">
-                  <button
-                    className="btn btn-secondary btn-sm btn-full"
-                    onClick={() => navigate(`/data/${project.id}`)}
-                  >
-                    Open Data
-                  </button>
-                </div>
+                <button
+                  className="btn btn-secondary btn-sm btn-full"
+                  onClick={() => navigate(`/data/${project.id}`)}
+                >
+                  Open Data
+                </button>
               </div>
             ))}
           </div>
@@ -125,35 +125,35 @@ export default function Projects() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">Create Project</h2>
+            <h2 className="modal-title">New Project</h2>
             <form onSubmit={createProject}>
               <div className="form-group">
-                <label className="label">Project Name</label>
+                <label className="label">Name</label>
                 <input
                   type="text"
                   className="input"
                   value={newProject.name}
                   onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  placeholder="My Awesome App"
+                  placeholder="My App"
                   required
                   autoFocus
                 />
               </div>
               <div className="form-group">
-                <label className="label">Description (optional)</label>
+                <label className="label">Description</label>
                 <input
                   type="text"
                   className="input"
                   value={newProject.description}
                   onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  placeholder="Brief description"
+                  placeholder="Optional"
                 />
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowModal(false)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="btn btn-primary btn-sm">
                   Create
                 </button>
               </div>

@@ -41,9 +41,7 @@ export default function Dashboard() {
       <header className="header">
         <div className="logo">🔥 Mini Firebase</div>
         <div className="header-actions">
-          <button className="btn-icon" onClick={() => setShowMenu(!showMenu)}>
-            ☰
-          </button>
+          <button className="btn-icon" onClick={() => setShowMenu(!showMenu)}>⋮</button>
         </div>
       </header>
 
@@ -58,10 +56,10 @@ export default function Dashboard() {
       <div className="container">
         <div className="welcome-card">
           <div>
-            <h1>Welcome, {user?.email?.split('@')[0]}!</h1>
-            <p>Manage your projects and data</p>
+            <h1>Hi, {user?.email?.split('@')[0] || 'Developer'}!</h1>
+            <p>Manage your projects</p>
           </div>
-          <Link to="/projects" className="btn btn-primary">+ New Project</Link>
+          <Link to="/projects" className="btn btn-primary btn-sm">+ New</Link>
         </div>
 
         <div className="stats-grid">
@@ -89,10 +87,10 @@ export default function Dashboard() {
         </div>
 
         <section className="section">
-          <div className="section-header">
-            <h2>Recent Projects</h2>
-            <Link to="/projects" className="link">View All</Link>
-          </div>
+          <h2>
+            <span>Projects</span>
+            <Link to="/projects" className="link">View All →</Link>
+          </h2>
 
           {loading ? (
             <div className="loading-state"><div className="spinner" /></div>
@@ -100,13 +98,13 @@ export default function Dashboard() {
             <div className="empty">
               <div className="empty-icon">📭</div>
               <p>No projects yet</p>
-              <Link to="/projects" className="btn btn-primary btn-sm" style={{ marginTop: 12 }}>
-                Create Project
+              <Link to="/projects" className="btn btn-primary btn-sm" style={{ marginTop: 10 }}>
+                + Create Project
               </Link>
             </div>
           ) : (
             <div className="projects-list">
-              {projects.slice(0, 3).map((project) => (
+              {projects.slice(0, 5).map((project) => (
                 <Link
                   key={project.id}
                   to={`/data/${project.id}`}
@@ -116,7 +114,7 @@ export default function Dashboard() {
                   <div className="project-info">
                     <div className="project-name">{project.name}</div>
                     <div className="project-meta">
-                      {project.apiKeys?.length || 0} API keys
+                      {project.apiKeys?.length || 0} keys • {new Date(project.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="chevron">›</div>
@@ -131,16 +129,16 @@ export default function Dashboard() {
           <div className="quick-actions">
             <Link to="/projects" className="action-card">
               <span className="action-icon">📁</span>
-              <span>Manage Projects</span>
+              <span>Projects</span>
             </Link>
-            <a href="/api" target="_blank" className="action-card">
-              <span className="action-icon">🔌</span>
-              <span>API Docs</span>
-            </a>
             <Link to="/settings" className="action-card">
               <span className="action-icon">⚙️</span>
               <span>Settings</span>
             </Link>
+            <a href="https://github.com/snipkode/mini-firebase" target="_blank" className="action-card">
+              <span className="action-icon">📄</span>
+              <span>Docs</span>
+            </a>
           </div>
         </section>
       </div>

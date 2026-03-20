@@ -45,7 +45,6 @@ export default function DataBrowser() {
   }
 
   async function fetchCollections(key) {
-    // Try common collections
     const commonCollections = ['users', 'posts', 'items', 'data', 'documents']
     const found = []
     
@@ -103,7 +102,7 @@ export default function DataBrowser() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this document?')) return
+    if (!confirm('Delete?')) return
     try {
       await fetch(`${API_URL}/api/${projectId}/db/${selectedCollection}/${id}`, {
         method: 'DELETE',
@@ -113,10 +112,6 @@ export default function DataBrowser() {
     } catch (err) {
       console.error(err)
     }
-  }
-
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text)
   }
 
   if (loading) {
@@ -132,17 +127,15 @@ export default function DataBrowser() {
       <header className="header">
         <div className="header-left">
           <button className="btn-icon" onClick={() => navigate(-1)}>←</button>
-          <h1>Data Browser</h1>
+          <h1>Data</h1>
         </div>
-        <div className="header-actions">
-          <button
-            className={`btn-icon ${compactMode ? 'active' : ''}`}
-            onClick={() => setCompactMode(!compactMode)}
-            title="Toggle compact mode"
-          >
-            ⧉
-          </button>
-        </div>
+        <button
+          className={`btn-icon ${compactMode ? 'active' : ''}`}
+          onClick={() => setCompactMode(!compactMode)}
+          title="Toggle compact"
+        >
+          ⧉
+        </button>
       </header>
 
       <div className="container">
@@ -150,20 +143,20 @@ export default function DataBrowser() {
           <div className="project-icon">🚀</div>
           <div className="project-details">
             <h2>{project?.name}</h2>
-            <p className="project-id">ID: {projectId}</p>
+            <p className="project-id">{projectId.slice(0, 12)}...</p>
           </div>
         </div>
 
         <div className="toolbar">
           <select
-            className="input"
+            className="input input-sm"
             value={selectedCollection}
             onChange={(e) => {
               setSelectedCollection(e.target.value)
               fetchData(apiKey, e.target.value)
             }}
           >
-            <option value="">Select collection...</option>
+            <option value="">Select...</option>
             {collections.map((col) => (
               <option key={col} value={col}>{col}</option>
             ))}
@@ -180,20 +173,20 @@ export default function DataBrowser() {
         {!selectedCollection ? (
           <div className="empty">
             <div className="empty-icon">📭</div>
-            <p>Select a collection to view data</p>
+            <p>Select a collection</p>
           </div>
         ) : data.length === 0 ? (
           <div className="empty">
             <div className="empty-icon">📄</div>
-            <p>No documents in {selectedCollection}</p>
+            <p>No documents</p>
           </div>
         ) : (
           <div className={`data-list ${compactMode ? 'compact' : ''}`}>
             {data.map((doc) => (
               <div key={doc.id} className="data-card">
                 <div className="data-header">
-                  <span className="doc-id" onClick={() => copyToClipboard(doc.id)}>
-                    📄 {doc.id?.slice(0, 12)}...
+                  <span className="doc-id" onClick={() => navigator.clipboard.writeText(doc.id)}>
+                    📄 {doc.id?.slice(0, 10)}...
                   </span>
                   <button
                     className="btn-icon danger"
@@ -217,23 +210,23 @@ export default function DataBrowser() {
             <h2 className="modal-title">Add Document</h2>
             <form onSubmit={handleAddDoc}>
               <div className="form-group">
-                <label className="label">JSON Data</label>
+                <label className="label">JSON</label>
                 <textarea
                   className="input"
                   value={newDoc}
                   onChange={(e) => setNewDoc(e.target.value)}
-                  placeholder='{"name": "Example", "value": 123}'
-                  rows={8}
+                  placeholder='{"name": "Example"}'
+                  rows={6}
                   required
                   autoFocus
                 />
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddDoc(false)}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddDoc(false)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  Add Document
+                <button type="submit" className="btn btn-primary btn-sm">
+                  Add
                 </button>
               </div>
             </form>
