@@ -230,6 +230,15 @@ export default function DataBrowser() {
             </svg>
           </button>
           <button
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === 'json' ? 'bg-accent text-white' : 'text-gray-400 hover:bg-bg-card'}`}
+            onClick={() => setViewMode('json')}
+            title="JSON view"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            </svg>
+          </button>
+          <button
             className={`p-1.5 rounded-lg transition-colors ${compactMode ? 'bg-accent text-white' : 'text-gray-400 hover:bg-bg-card'}`}
             onClick={() => setCompactMode(!compactMode)}
             title="Toggle compact"
@@ -355,8 +364,8 @@ export default function DataBrowser() {
                       <thead className="bg-bg-card border-b border-border">
                         <tr>
                           {allFields.slice(0, compactMode ? 4 : allFields.length).map((field) => (
-                            <th 
-                              key={field} 
+                            <th
+                              key={field}
                               className="text-left text-[10px] text-gray-400 uppercase tracking-wide px-3 py-2.5 font-medium whitespace-nowrap"
                             >
                               {field}
@@ -373,8 +382,8 @@ export default function DataBrowser() {
                             {allFields.slice(0, compactMode ? 4 : allFields.length).map((field) => (
                               <td key={field} className="px-3 py-2.5 max-w-[120px]">
                                 <div className="text-xs text-truncate">
-                                  {typeof doc[field] === 'object' 
-                                    ? JSON.stringify(doc[field]) 
+                                  {typeof doc[field] === 'object'
+                                    ? JSON.stringify(doc[field])
                                     : String(doc[field] ?? '-')}
                                 </div>
                               </td>
@@ -407,23 +416,28 @@ export default function DataBrowser() {
                     </table>
                   </div>
                 ) : (
-                  <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto">
-                    {data.map((doc) => (
-                      <div key={doc.id} className="bg-bg-card rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] text-gray-400 font-mono">{doc.id}</span>
-                          <div className="flex gap-1">
+                  <div className="max-h-[500px] overflow-y-auto scrollbar-thin p-3 space-y-3">
+                    {data.map((doc, index) => (
+                      <div key={doc.id} className="bg-bg-card border border-border rounded-lg overflow-hidden">
+                        <div className="bg-bg-secondary border-b border-border px-3 py-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-400 font-mono">#{index + 1}</span>
+                            <span className="text-[10px] text-gray-400 font-mono">{doc.id?.slice(0, 16)}...</span>
+                          </div>
+                          <div className="flex items-center gap-1">
                             <button
-                              className="p-1 rounded text-gray-400 hover:text-accent"
+                              className="p-1.5 rounded text-gray-400 hover:bg-bg-secondary hover:text-accent transition-colors"
                               onClick={() => handleEditDoc(doc)}
+                              title="Edit document"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </button>
                             <button
-                              className="p-1 rounded text-gray-400 hover:text-red-400"
+                              className="p-1.5 rounded text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                               onClick={() => handleDeleteDoc(doc.id)}
+                              title="Delete document"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -431,9 +445,11 @@ export default function DataBrowser() {
                             </button>
                           </div>
                         </div>
-                        <pre className="text-[10px] text-gray-400 overflow-x-auto">
-                          {JSON.stringify(doc, null, 2)}
-                        </pre>
+                        <div className="p-3 overflow-x-auto">
+                          <pre className="text-xs font-mono text-gray-300">
+                            <code>{JSON.stringify(doc, null, 2)}</code>
+                          </pre>
+                        </div>
                       </div>
                     ))}
                   </div>
